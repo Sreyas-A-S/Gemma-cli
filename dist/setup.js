@@ -50,6 +50,17 @@ async function runSetup() {
         spinner.fail(chalk.red('Failed to verify models.'));
         console.error(error.message);
     }
-    console.log(chalk.bold.green('\n🎉 Setup complete! You can now run "npm start" to begin.'));
+    // 3. Register the command globally
+    const registerSpinner = ora('Registering "gemma" command globally...').start();
+    try {
+        // We use npm link to register the bin command defined in package.json
+        await execa('npm', ['link']);
+        registerSpinner.succeed(chalk.green('✅ "gemma" command registered successfully!'));
+    }
+    catch (error) {
+        registerSpinner.warn(chalk.yellow('⚠️ Could not register "gemma" command globally automatically.'));
+        console.log(chalk.dim('   (You may need to run "npm link" manually with administrative privileges)'));
+    }
+    console.log(chalk.bold.green('\n🎉 Setup complete! You can now run "gemma" from anywhere.'));
 }
 runSetup();

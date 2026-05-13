@@ -8,9 +8,10 @@
   },
   "scripts": {
     "build": "tsc",
+    "postinstall": "npm run build",
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
-    "setup": "npm install && npm run build && tsx src/setup.ts"
+    "setup": "node dist/setup.js"
   },
   "dependencies": {
     "chalk": "^5.3.0",

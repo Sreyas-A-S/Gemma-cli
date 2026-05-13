@@ -35,9 +35,10 @@ import { execa } from 'execa';
 async function verifyModel(modelName: string) {
   try {
     const { stdout } = await execa('ollama', ['list']);
-    return stdout.includes(modelName);
-  } catch {
-    return false;
+    if (!stdout.includes(modelName)) return { exists: false, running: true };
+    return { exists: true, running: true };
+  } catch (error: any) {
+    return { exists: false, running: false };
   }
 }
 
@@ -49,11 +50,18 @@ program
   .option('-f, --file <paths...>', 'Pass local files as context for the model')
   .option('--code', 'Enable coding-optimized mode')
   .action(async (options) => {
-    // Verify model exists
-    const isModelInstalled = await verifyModel(options.model);
-    if (!isModelInstalled) {
+    // Verify model and service
+    const status = await verifyModel(options.model);
+    
+    if (!status.running) {
+      console.error(chalk.red(`\n❌ Error: Could not connect to Ollama.`));
+      console.log(chalk.yellow(`Please make sure the Ollama app is running in your taskbar.\n`));
+      process.exit(1);
+    }
+
+    if (!status.exists) {
       console.error(chalk.red(`\n❌ Error: Model "${options.model}" is not installed.`));
-      console.log(chalk.yellow(`Run "npm run setup" to initialize the environment and download the model.\n`));
+      console.log(chalk.yellow(`Run "npm run setup" to download the model.\n`));
       process.exit(1);
     }
 

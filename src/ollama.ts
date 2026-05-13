@@ -51,6 +51,9 @@ export class GemmaClient {
       if (error.code === 'ECONNREFUSED') {
         throw new Error('Could not connect to Ollama. Is it running?');
       }
+      if (error.message?.includes('loading model')) {
+        throw new Error('Gemma is still loading into memory. Please wait 30-60 seconds and try again.');
+      }
       throw error;
     }
   }

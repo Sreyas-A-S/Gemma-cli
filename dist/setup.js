@@ -21,34 +21,39 @@ async function runSetup() {
         process.exit(1);
     }
     console.log(chalk.green('✅ Ollama is installed.'));
-    // 2. Check for the model
-    const modelName = 'codeqwen';
-    const spinner = ora(`Checking for ${modelName} model...`).start();
-    try {
-        const { stdout } = await execa('ollama', ['list']);
-        if (stdout.includes(modelName)) {
-            spinner.succeed(chalk.green(`✅ Model ${modelName} is already installed.`));
-        }
-        else {
-            spinner.info(chalk.yellow(`📝 Model ${modelName} not found.`));
-            const { download } = await inquirer.prompt([{
-                    type: 'confirm',
-                    name: 'download',
-                    message: `Would you like to download ${modelName} (approx 10GB) now?`,
-                    default: true
-                }]);
-            if (download) {
-                console.log(chalk.blue(`\nStarting download... This may take a while.`));
+    // 2. Model Selection
+    const models = [
+        { name: 'codeqwen', desc: 'Best for Coding (4.2GB)', value: 'codeqwen' },
+        { name: 'llama3.1', desc: 'Best Generalist (4.7GB)', value: 'llama3.1' },
+        { name: 'gemma:2b', desc: 'Lightweight & Fast (1.6GB)', value: 'gemma:2b' },
+        { name: 'gemma2:9b', desc: 'Most Intelligent (5.4GB)', value: 'gemma2:9b' }
+    ];
+    const { selectedModels } = await inquirer.prompt([{
+            type: 'checkbox',
+            name: 'selectedModels',
+            message: 'Which models would you like to install?',
+            choices: models.map(m => ({ name: `${m.name} - ${m.desc}`, value: m.value })),
+            default: ['codeqwen']
+        }]);
+    for (const modelName of selectedModels) {
+        const spinner = ora(`Checking for ${modelName} model...`).start();
+        try {
+            const { stdout } = await execa('ollama', ['list']);
+            if (stdout.includes(modelName)) {
+                spinner.succeed(chalk.green(`✅ Model ${modelName} is already installed.`));
+            }
+            else {
+                spinner.info(chalk.yellow(`📝 Model ${modelName} not found.`));
+                console.log(chalk.blue(`\nStarting download of ${modelName}...`));
                 const downloadProcess = execa('ollama', ['pull', modelName]);
                 downloadProcess.stdout?.pipe(process.stdout);
                 await downloadProcess;
                 console.log(chalk.green(`\n✅ Model ${modelName} downloaded successfully!`));
             }
         }
-    }
-    catch (error) {
-        spinner.fail(chalk.red('Failed to verify models.'));
-        console.error(error.message);
+        catch (error) {
+            spinner.fail(chalk.red(`Failed to verify/download ${modelName}.`));
+        }
     }
     // 3. Register the command globally
     const registerSpinner = ora('Registering "gemma" command globally...').start();

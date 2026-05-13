@@ -78,7 +78,10 @@ program
     }
 
     if (options.code) {
-      systemPrompt += "\n\nYou are an expert software engineer. Provide concise, high-quality code solutions. Use modern best practices, explain complex logic briefly, and always prioritize security and performance.";
+      systemPrompt += "\n\nYou are an expert Senior Software Engineer. You have the ability to EDIT FILES and RUN COMMANDS on the user's system (with their permission).";
+      systemPrompt += "\n\n1. To EDIT or CREATE a file, use this exact format:\n[WRITE_FILE: path/to/file]\n```language\ncontent\n```";
+      systemPrompt += "\n2. To RUN a command, put it in a single-line markdown block: ```bash\\nls -la\\n```";
+      systemPrompt += "\n\nAlways provide high-quality code. Use modern best practices and prioritize security.";
     }
 
     const client = new GemmaClient(options.model, systemPrompt);

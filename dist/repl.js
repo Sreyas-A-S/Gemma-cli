@@ -3,6 +3,7 @@ import fs from 'fs';
 import chalk from 'chalk';
 import ora from 'ora';
 import { execa } from 'execa';
+import path from 'path';
 import inquirer from 'inquirer';
 import { marked } from 'marked';
 import TerminalRenderer from 'marked-terminal';
@@ -31,6 +32,39 @@ async function saveLog(path, history, model, systemPrompt, topics = []) {
         throw new Error(`Failed to save log: ${error.message}`);
     }
 }
+async function handleFileEdits(content) {
+    // Pattern: [WRITE_FILE: path/to/file] \n ```language \n code \n ```
+    const fileRegex = /\[WRITE_FILE:\s*(.*?)\]\s*[\r\n]+```(?:\w+)?[\r\n]+([\s\S]*?)```/g;
+    const matches = [...content.matchAll(fileRegex)];
+    if (matches.length === 0)
+        return;
+    for (const match of matches) {
+        const filePath = match[1].trim();
+        const fileContent = match[2].trim();
+        console.log(chalk.cyan(`\nGemma wants to write to file: ${chalk.bold(filePath)}`));
+        console.log(chalk.grey('-----------------------------------'));
+        console.log(chalk.dim(fileContent.substring(0, 200) + (fileContent.length > 200 ? '...' : '')));
+        console.log(chalk.grey('-----------------------------------'));
+        const { confirm } = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'confirm',
+                message: `Apply these changes to ${filePath}?`,
+                default: false
+            }]);
+        if (confirm) {
+            try {
+                const dir = path.dirname(filePath);
+                if (!fs.existsSync(dir))
+                    fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(filePath, fileContent);
+                console.log(chalk.green(`✅ File ${filePath} updated successfully!`));
+            }
+            catch (error) {
+                console.error(chalk.red(`Failed to write file: ${error.message}`));
+            }
+        }
+    }
+}
 async function handleShellExecution(content) {
     const shellRegex = /```(?:bash|sh|shell|powershell|ps1)\n([\s\S]*?)```/g;
     const matches = [...content.matchAll(shellRegex)];
@@ -38,6 +72,8 @@ async function handleShellExecution(content) {
         return;
     for (const match of matches) {
         const command = match[1].trim();
+        if (command.includes('\n'))
+            continue; // Ignore multi-line blocks for safety unless specifically requested
         console.log(chalk.yellow('\nGemma proposed a shell command:'));
         console.log(chalk.grey('-----------------------------------'));
         console.log(chalk.white(command));
@@ -45,15 +81,14 @@ async function handleShellExecution(content) {
         const { confirm } = await inquirer.prompt([{
                 type: 'confirm',
                 name: 'confirm',
-                message: 'Do you want to execute this command?',
+                message: 'Execute this command?',
                 default: false
             }]);
         if (confirm) {
             try {
-                console.log(chalk.blue(`Executing: ${command}`));
                 const { stdout, stderr } = await execa(command, { shell: true });
                 if (stdout)
-                    console.log(stdout);
+                    console.log(chalk.dim(stdout));
                 if (stderr)
                     console.error(chalk.red(stderr));
             }
@@ -157,6 +192,8 @@ export async function startREPL(modelName, systemPrompt, logPath, initialHistory
                 }
                 process.stdout.write('\n');
                 history.push({ role: 'assistant', content: fullResponse });
+                // Check for file edits
+                await handleFileEdits(fullResponse);
                 // Check for shell commands
                 await handleShellExecution(fullResponse);
             }

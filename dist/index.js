@@ -39,7 +39,7 @@ async function verifyModel(modelName) {
 }
 program
     .option('-p, --prompt <text>', 'Send a single prompt to the model')
-    .option('-m, --model <name>', 'Specify the model to use', 'gemma4')
+    .option('-m, --model <name>', 'Specify the model to use', 'codeqwen')
     .option('-s, --system <text>', 'Define the system prompt (personality)')
     .option('-l, --log <path>', 'Path to save the conversation log')
     .option('-f, --file <paths...>', 'Pass local files as context for the model')

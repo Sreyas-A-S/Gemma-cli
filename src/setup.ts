@@ -25,7 +25,7 @@ async function runSetup() {
   console.log(chalk.green('✅ Ollama is installed.'));
 
   // 2. Check for the model
-  const modelName = 'gemma4';
+  const modelName = 'codeqwen';
   const spinner = ora(`Checking for ${modelName} model...`).start();
   
   try {
